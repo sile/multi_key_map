@@ -1,0 +1,5 @@
+@copyright Takeru Ohta <phjgt308@gmail.com>
+@version 0.0.1
+@title multi_key_map
+@doc
+一つの値に対して複数のキーが割り当て可能なマップの実装
