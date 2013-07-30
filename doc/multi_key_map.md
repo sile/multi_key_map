@@ -1,30 +1,15 @@
 
 
 # Module multi_key_map #
-* [Description](#description)
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
 
-マルチキーマップの実装.
-
 
 <a name="types"></a>
 
 ## Data Types ##
-
-
-
-
-### <a name="type-index_name">index_name()</a> ###
-
-
-
-<pre><code>
-index_name() = term()
-</code></pre>
-
 
 
 
@@ -35,6 +20,18 @@ index_name() = term()
 
 <pre><code>
 key() = term()
+</code></pre>
+
+
+
+
+
+### <a name="type-keyset">keyset()</a> ###
+
+
+
+<pre><code>
+keyset() = tuple()
 </code></pre>
 
 
@@ -67,7 +64,7 @@ value() = term()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#erase-3">erase/3</a></td><td></td></tr><tr><td valign="top"><a href="#find-3">find/3</a></td><td></td></tr><tr><td valign="top"><a href="#fold-3">fold/3</a></td><td></td></tr><tr><td valign="top"><a href="#make-1">make/1</a></td><td></td></tr><tr><td valign="top"><a href="#store-3">store/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#erase-3">erase/3</a></td><td></td></tr><tr><td valign="top"><a href="#find-3">find/3</a></td><td></td></tr><tr><td valign="top"><a href="#fold-3">fold/3</a></td><td></td></tr><tr><td valign="top"><a href="#foreach-2">foreach/2</a></td><td></td></tr><tr><td valign="top"><a href="#insert-3">insert/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_multi_key_map-1">is_multi_key_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#size-1">size/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr><tr><td valign="top"><a href="#update-4">update/4</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -80,7 +77,7 @@ value() = term()
 
 
 <pre><code>
-erase(IndexName::<a href="#type-index_name">index_name()</a>, Key::<a href="#type-key">key()</a>, Map::<a href="#type-map">map()</a>) -&gt; <a href="#type-map">map()</a>
+erase(KeyIndex::non_neg_integer(), Key::<a href="#type-key">key()</a>, Map::<a href="#type-map">map()</a>) -&gt; <a href="#type-map">map()</a>
 </code></pre>
 
 <br></br>
@@ -93,7 +90,7 @@ erase(IndexName::<a href="#type-index_name">index_name()</a>, Key::<a href="#typ
 
 
 <pre><code>
-find(IndexName::<a href="#type-index_name">index_name()</a>, Key::<a href="#type-key">key()</a>, Map::<a href="#type-map">map()</a>) -&gt; error | {ok, <a href="#type-value">value()</a>}
+find(KeyIndex::non_neg_integer(), Key::<a href="#type-key">key()</a>, Map::<a href="#type-map">map()</a>) -&gt; {ok, <a href="#type-keyset">keyset()</a>, <a href="#type-value">value()</a>} | error
 </code></pre>
 
 <br></br>
@@ -106,34 +103,97 @@ find(IndexName::<a href="#type-index_name">index_name()</a>, Key::<a href="#type
 
 
 <pre><code>
-fold(FoldFun, InitValue, Map::<a href="#type-map">map()</a>) -&gt; Result
+fold(Fun, Initial::<a href="#type-value">value()</a>, Map::<a href="#type-map">map()</a>) -&gt; Result
 </code></pre>
 
-<ul class="definitions"><li><code>FoldFun = fun(([{<a href="#type-index_name">index_name()</a>, <a href="#type-key">key()</a>}], <a href="#type-value">value()</a>, Acc) -&gt; Acc)</code></li><li><code>InitValue = term()</code></li><li><code>Acc = term()</code></li><li><code>Result = term()</code></li></ul>
+<ul class="definitions"><li><code>Fun = fun((<a href="#type-keyset">keyset()</a>, <a href="#type-value">value()</a>, Acc) -&gt; NextAcc)</code></li><li><code>Acc = term()</code></li><li><code>NextAcc = term()</code></li><li><code>Result = term()</code></li></ul>
 
 
-<a name="make-1"></a>
+<a name="foreach-2"></a>
 
-### make/1 ###
+### foreach/2 ###
 
 
 <pre><code>
-make(IndexNames::[<a href="#type-index_name">index_name()</a>]) -&gt; <a href="#type-map">map()</a>
+foreach(Fun, Map::<a href="#type-map">map()</a>) -&gt; ok
+</code></pre>
+
+<ul class="definitions"><li><code>Fun = fun((<a href="#type-keyset">keyset()</a>, <a href="#type-value">value()</a>) -&gt; any())</code></li></ul>
+
+
+<a name="insert-3"></a>
+
+### insert/3 ###
+
+
+<pre><code>
+insert(KeySet::<a href="#type-keyset">keyset()</a>, Value::<a href="#type-value">value()</a>, Map::<a href="#type-map">map()</a>) -&gt; {ok, <a href="#type-map">map()</a>} | {error, Reason}
+</code></pre>
+
+<ul class="definitions"><li><code>Reason = {key_exists, atom(), Key::<a href="#type-key">key()</a>}</code></li></ul>
+
+
+<a name="is_multi_key_map-1"></a>
+
+### is_multi_key_map/1 ###
+
+
+<pre><code>
+is_multi_key_map(Value::term()) -&gt; boolean()
 </code></pre>
 
 <br></br>
 
 
 
-<a name="store-3"></a>
+<a name="new-1"></a>
 
-### store/3 ###
+### new/1 ###
 
 
 <pre><code>
-store(Keys, Value::<a href="#type-value">value()</a>, Map::<a href="#type-map">map()</a>) -&gt; <a href="#type-map">map()</a>
+new(KeySetRecordFields) -&gt; <a href="#type-map">map()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Keys = [{<a href="#type-index_name">index_name()</a>, <a href="#type-key">key()</a>}]</code></li></ul>
+<ul class="definitions"><li><code>KeySetRecordFields = [atom()]</code></li></ul>
+
+
+<a name="size-1"></a>
+
+### size/1 ###
+
+
+<pre><code>
+size(Map::<a href="#type-map">map()</a>) -&gt; non_neg_integer()
+</code></pre>
+
+<br></br>
+
+
+
+<a name="to_list-1"></a>
+
+### to_list/1 ###
+
+
+<pre><code>
+to_list(Map::<a href="#type-map">map()</a>) -&gt; [{<a href="#type-keyset">keyset()</a>, <a href="#type-value">value()</a>}]
+</code></pre>
+
+<br></br>
+
+
+
+<a name="update-4"></a>
+
+### update/4 ###
+
+
+<pre><code>
+update(KeyIndex::non_neg_integer(), Key::<a href="#type-key">key()</a>, Value::<a href="#type-value">value()</a>, Map::<a href="#type-map">map()</a>) -&gt; {ok, <a href="#type-map">map()</a>} | error
+</code></pre>
+
+<br></br>
+
 
 

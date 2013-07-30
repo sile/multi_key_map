@@ -1,151 +1,160 @@
-%% @doc マルチキーマップの実装
 -module(multi_key_map).
 
-%%--------------------------------------------------------------------------------
-%% Exported Functions
-%%--------------------------------------------------------------------------------
 -export([
          new/1,
          is_multi_key_map/1,
-         store/3,
+         insert/3,
+         update/4,
          find/3,
          erase/3,
          fold/3,
+         foreach/2,
          to_list/1,
          size/1
         ]).
 
-%%--------------------------------------------------------------------------------
-%% Exported Types
-%%--------------------------------------------------------------------------------
 -export_type([
               map/0,
-              index_name/0,
+              keyset/0,
               key/0,
               value/0
              ]).
 
-%%--------------------------------------------------------------------------------
-%% Macros
-%%--------------------------------------------------------------------------------
 -define(MAP, ?MODULE).
 
--define(INNER_MAP_NEW(), dict:new()).
--define(INNER_MAP_FIND(Key, Map), dict:find(Key, Map)).
--define(INNER_MAP_STORE(Key, Value, Map), dict:store(Key, Value, Map)).
--define(INNER_MAP_ERASE(Key, Map), dict:erase(Key, Map)).
--define(INNER_MAP_FOLD(Fun, Init, Map), dict:fold(Fun, Init, Map)).
--define(INNER_MAP_SIZE(Map), dict:size(Map)).
-
-%%--------------------------------------------------------------------------------
-%% Records
-%%--------------------------------------------------------------------------------
 -record(?MAP,
         {
-          maps :: [{index_name(), inner_map()}]
+          fields     :: [atom()],
+          inner_maps :: [dict()]
         }).
 
-%%--------------------------------------------------------------------------------
-%% Types
-%%--------------------------------------------------------------------------------
 -type map() :: #?MAP{}.
--type index_name() :: term().
--type key() :: term().
--type value() :: term().
 
--type inner_map() :: dict().
+-type keyset() :: tuple().
+-type key()    :: term().
+-type value()  :: term().
 
-%%--------------------------------------------------------------------------------
-%% Functions
-%%--------------------------------------------------------------------------------
--spec new([index_name()]) -> map().
-new([]) ->
-    error(empty_list_is_not_allowed);
-new(IndexNames) ->
-    #?MAP{maps = [{Name, ?INNER_MAP_NEW()} || Name <- IndexNames]}.
+-spec new(KeySetRecordFields) -> map() when
+      KeySetRecordFields :: [atom()].
+new(KeySetRecordFields) ->
+    #?MAP{fields = KeySetRecordFields,
+          inner_maps = [dict:new() || _ <- KeySetRecordFields]}.
 
--spec is_multi_key_map(map()) -> boolean().
+-spec is_multi_key_map(Value::term()) -> boolean().
 is_multi_key_map(#?MAP{}) -> true;
 is_multi_key_map(_)       -> false.
 
--spec store(Keys, value(), map()) -> map() when
-      Keys :: [{index_name(), key()}].
-store(Keys, Value, Map) ->
-    #?MAP{maps = Maps} = Map,
-    Entry = {Keys, Value},  % メモリ使用量的に無駄は多い
+-spec insert(keyset(), value(), map()) -> {ok, map()} | {error, Reason} when
+      Reason :: {key_exists, atom(), Key::key()}.
+insert(KeySet, Value, Map) ->
+    Entry = {KeySet, Value},
     Result = 
-        lists:foldl(fun ({IndexName, Key}, {OldMaps, NewMaps}) ->
-                            case lists:keytake(IndexName, 1, OldMaps) of
-                                false                            -> error(unknown_index, IndexName);
-                                {value, {_, InnerMap}, OldMaps2} ->
-                                    {OldMaps2, [{IndexName, ?INNER_MAP_STORE(Key, Entry, InnerMap)} | NewMaps]}
-                            end
-                    end,
-                    {Maps, []},
-                    Keys),
+        fold_inner_maps(fun (_, _, {error, Reason}) ->
+                                {error, Reason};
+                            (Key, InnerMap, {ok, Acc}) ->
+                                case dict:is_key(Key, InnerMap) of
+                                    true  ->
+                                        Index = length(Acc) + 1,
+                                        FieldName = lists:nth(Index, Map#?MAP.fields),
+                                        {error, {key_exists, FieldName, Key}};
+                                    false ->
+                                        {ok, [dict:store(Key, Entry, InnerMap) | Acc]}
+                                end
+                        end,
+                        {ok, []},
+                        KeySet, Map),
     case Result of
-        {[], Maps2} -> Map#?MAP{maps = Maps2};
-        _           -> error(partial_keys)
+        {error, Reason} -> {error, Reason};
+        {ok, InnerMaps} -> {ok, Map#?MAP{inner_maps = lists:reverse(InnerMaps)}}
     end.
 
-
--spec find(index_name(), key(), map()) -> error | {ok, value()}.
-find(IndexName, Key, Map) ->
-    case lists:keyfind(IndexName, 1, Map#?MAP.maps) of
-        false         -> error; % error(...) ?
-        {_, InnerMap} -> case ?INNER_MAP_FIND(Key, InnerMap) of
-                             error            -> error;
-                             {ok, {_, Value}} -> {ok, Value}
-                         end
+-spec update(non_neg_integer(), key(), value(), map()) -> {ok, map()} | error.
+update(KeyIndex, Key, Value, Map) ->
+    InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
+    case dict:find(Key, InnerMap) of
+        error       -> error;
+        {ok, Entry} ->
+            {KeySet, _OldValue} = Entry,
+            {ok, update_impl(KeySet, Value, Map)}
     end.
 
--spec erase(index_name(), key(), map()) -> map().
-erase(IndexName, Key, Map) ->
-    case find_keys(IndexName, Key, Map) of
-        error      -> Map;
-        {ok, Keys} ->
-            Maps =
-                lists:foldl(fun ({IndexName2, Key2}, {OldMaps, NewMaps}) ->
-                                    {value, {_, InnerMap}, OldMap2} = lists:keytake(IndexName2, 1, OldMaps),
-                                    {OldMap2, [{IndexName2, ?INNER_MAP_ERASE(Key2, InnerMap)} | NewMaps]}
-                            end,
-                            {Map#?MAP.maps, []},
-                            Keys),
-            Map#?MAP{maps = Maps}
+-spec find(non_neg_integer(), key(), map()) -> {ok, keyset(), value()} | error.
+find(KeyIndex, Key, Map) ->
+    InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
+    case dict:find(Key, InnerMap) of
+        error                 -> error;
+        {ok, {KeySet, Value}} -> {ok, KeySet, Value}
     end.
 
--spec fold(FoldFun, InitValue, map()) -> Result when
-      FoldFun   :: fun (([{index_name(), key()}], value(), Acc) -> Acc),
-      InitValue :: term(),
-      Acc       :: term(),
-      Result    :: term().
-fold(FoldFun, InitValue, Map) ->
-    #?MAP{maps = [{_, FirstInnerMap} | _]} = Map,
-    ?INNER_MAP_FOLD(fun (_, {Keys, Value}, Acc) -> FoldFun(Keys, Value, Acc) end,
-                    InitValue,
-                    FirstInnerMap).
+-spec erase(non_neg_integer(), key(), map()) -> map().
+erase(KeyIndex, Key, Map) ->
+    InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
+    case dict:find(Key, InnerMap) of
+        error             -> Map;
+        {ok, {KeySet, _}} -> erase_impl(KeySet, Map)
+    end.
 
--spec to_list(map()) -> [{[{index_name(), key()}], value()}].
+-spec fold(Fun, value(), map()) -> Result when
+      Fun     :: fun ((keyset(), value(), Acc) -> NextAcc),
+      Acc     :: term(),
+      NextAcc :: term(),
+      Result  :: term().
+fold(Fun, Initial, Map) ->
+    dict:fold(fun (_, {KeySet, Value}, Acc) ->
+                      Fun(KeySet, Value, Acc)
+              end,
+              Initial,
+              first_inner_map(Map)).
+
+-spec foreach(Fun, map()) -> ok when
+      Fun :: fun ((keyset(), value()) -> any()).
+foreach(Fun, Map) ->
+    fold(fun (KeySet, Value, _) -> Fun(KeySet, Value) end,
+         ok,
+         Map),
+    ok.
+
+-spec to_list(map()) -> [{keyset(), value()}].
 to_list(Map) ->
-    #?MAP{maps = [{_, FirstInnerMap} | _]} = Map,
-    ?INNER_MAP_FOLD(fun (_, Entry, Acc) -> [Entry | Acc] end,
-                    [],
-                    FirstInnerMap).
+    lists:reverse(dict:fold(fun (_, Entry, Acc) -> [Entry | Acc] end,
+                            [],
+                            first_inner_map(Map))).
 
 -spec size(map()) -> non_neg_integer().
 size(Map) ->
-    #?MAP{maps = [{_, FirstInnerMap} | _]} = Map,
-    ?INNER_MAP_SIZE(FirstInnerMap).
+    dict:size(first_inner_map(Map)).
 
-%%--------------------------------------------------------------------------------
-%% Functions
-%%--------------------------------------------------------------------------------
--spec find_keys(index_name(), key(), map()) -> error | {ok, value()}.
-find_keys(IndexName, Key, Map) ->
-    case lists:keyfind(IndexName, 1, Map#?MAP.maps) of
-        false         -> error; % error(...) ?
-        {_, InnerMap} -> case ?INNER_MAP_FIND(Key, InnerMap) of
-                             error           -> error;
-                             {ok, {Keys, _}} -> {ok, Keys}
-                         end
-    end.
+-spec fold_inner_maps(Fun, term(), keyset(), map()) -> Result::term() when
+      Fun :: fun ((key(), dict(), Acc::term()) -> NextAcc::term()).
+fold_inner_maps(Fun, Initial, KeySet, Map) ->
+    {_, AccResult} = 
+        lists:foldl(fun (InnerMap, {I, Acc}) ->
+                            Key = element(I, KeySet),
+                            {I+1, Fun(Key, InnerMap, Acc)}
+                    end,
+                    {2, Initial},
+                    Map#?MAP.inner_maps),
+    AccResult.
+
+-spec update_impl(keyset(), value(), map()) -> map().
+update_impl(KeySet, Value, Map) ->
+    Entry = {KeySet, Value},
+    InnerMaps = fold_inner_maps(fun (Key, InnerMap, Acc) ->
+                                        [dict:store(Key, Entry, InnerMap) | Acc]
+                                end,
+                                [],
+                                KeySet, Map),
+    Map#?MAP{inner_maps = InnerMaps}.
+
+-spec erase_impl(keyset(), map()) -> map().
+erase_impl(KeySet, Map) ->    
+    InnerMaps = fold_inner_maps(fun (Key, InnerMap, Acc) ->
+                                        [dict:erase(Key, InnerMap) | Acc]
+                                end,
+                                [],
+                                KeySet, Map),
+    Map#?MAP{inner_maps = InnerMaps}.
+
+-spec first_inner_map(map()) -> dict().
+first_inner_map(#?MAP{inner_maps = [First | _]}) ->
+    First.
