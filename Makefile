@@ -1,6 +1,6 @@
 DIALYZER_OPTS=-Werror_handling -Wrace_conditions -Wunmatched_returns
 
-all: compile xref eunit
+all: init compile xref eunit
 
 init:
 	./rebar get-deps compile 
