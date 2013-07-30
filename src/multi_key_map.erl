@@ -5,11 +5,14 @@
 %% Exported Functions
 %%--------------------------------------------------------------------------------
 -export([
-         make/1,
+         new/1,
+         is_multi_key_map/1,
          store/3,
          find/3,
          erase/3,
-         fold/3
+         fold/3,
+         to_list/1,
+         size/1
         ]).
 
 %%--------------------------------------------------------------------------------
@@ -32,6 +35,7 @@
 -define(INNER_MAP_STORE(Key, Value, Map), dict:store(Key, Value, Map)).
 -define(INNER_MAP_ERASE(Key, Map), dict:erase(Key, Map)).
 -define(INNER_MAP_FOLD(Fun, Init, Map), dict:fold(Fun, Init, Map)).
+-define(INNER_MAP_SIZE(Map), dict:size(Map)).
 
 %%--------------------------------------------------------------------------------
 %% Records
@@ -54,11 +58,15 @@
 %%--------------------------------------------------------------------------------
 %% Functions
 %%--------------------------------------------------------------------------------
--spec make([index_name()]) -> map().
-make([]) ->
+-spec new([index_name()]) -> map().
+new([]) ->
     error(empty_list_is_not_allowed);
-make(IndexNames) ->
+new(IndexNames) ->
     #?MAP{maps = [{Name, ?INNER_MAP_NEW()} || Name <- IndexNames]}.
+
+-spec is_multi_key_map(map()) -> boolean().
+is_multi_key_map(#?MAP{}) -> true;
+is_multi_key_map(_)       -> false.
 
 -spec store(Keys, value(), map()) -> map() when
       Keys :: [{index_name(), key()}].
@@ -116,6 +124,18 @@ fold(FoldFun, InitValue, Map) ->
     ?INNER_MAP_FOLD(fun (_, {Keys, Value}, Acc) -> FoldFun(Keys, Value, Acc) end,
                     InitValue,
                     FirstInnerMap).
+
+-spec to_list(map()) -> [{[{index_name(), key()}], value()}].
+to_list(Map) ->
+    #?MAP{maps = [{_, FirstInnerMap} | _]} = Map,
+    ?INNER_MAP_FOLD(fun (_, Entry, Acc) -> [Entry | Acc] end,
+                    [],
+                    FirstInnerMap).
+
+-spec size(map()) -> non_neg_integer().
+size(Map) ->
+    #?MAP{maps = [{_, FirstInnerMap} | _]} = Map,
+    ?INNER_MAP_SIZE(FirstInnerMap).
 
 %%--------------------------------------------------------------------------------
 %% Functions
