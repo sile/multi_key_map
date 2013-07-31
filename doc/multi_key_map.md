@@ -156,7 +156,7 @@ value() = term()
 
 
 <pre><code>
-erase(KeyIndex::non_neg_integer(), Key::<a href="#type-key">key()</a>, Map::<a href="#type-map">map()</a>) -&gt; <a href="#type-map">map()</a>
+erase(FieldIndex::non_neg_integer(), Key::<a href="#type-key">key()</a>, Map::<a href="#type-map">map()</a>) -&gt; <a href="#type-map">map()</a>
 </code></pre>
 
 <br></br>
@@ -283,10 +283,10 @@ is_multi_key_map(Value::term()) -&gt; boolean()
 
 
 <pre><code>
-new(KeySetName, KeySetFields) -&gt; <a href="#type-map">map()</a>
+new(KeySetName::<a href="#type-keyset_name">keyset_name()</a>, KeySetFields) -&gt; <a href="#type-map">map()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>KeySetName = <a href="#type-keyset_name">keyset_name()</a></code></li><li><code>KeySetFields = [<a href="#type-keyset_field_index">keyset_field_index()</a>]</code></li></ul>
+<ul class="definitions"><li><code>KeySetFields = [<a href="#type-keyset_field_index">keyset_field_index()</a>]</code></li></ul>
 
 
 マップインスタンスを生成する.

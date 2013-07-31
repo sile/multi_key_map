@@ -77,8 +77,7 @@
 %% > rd(keyset, {key1, key2, key3}).
 %% > multi_key_map:new(keyset, record_info(fields, keyset)).
 %% '''
--spec new(KeySetName, KeySetFields) -> map() when
-      KeySetName   :: keyset_name(),
+-spec new(keyset_name(), KeySetFields) -> map() when
       KeySetFields :: [keyset_field_index()].
 new(KeySetName, KeySetFields) ->
     #?MAP{record_name = KeySetName,
@@ -170,8 +169,8 @@ find(FieldIndex, Key, Map) when is_integer(FieldIndex) ->
 %% キーセット内の`FieldIndex'で指定されたフィールドの値が`Key'となる要素の値を削除する. <br />
 %% 対応する要素が存在しない場合は、単に引数で渡されたマップがそのまま返される.
 -spec erase(non_neg_integer(), key(), map()) -> map().
-erase(KeyIndex, Key, Map) ->
-    InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
+erase(FieldIndex, Key, Map) when is_integer(FieldIndex) ->
+    InnerMap = lists:nth(FieldIndex-1, Map#?MAP.inner_maps),
     case dict:find(Key, InnerMap) of
         error             -> Map;
         {ok, {KeySet, _}} -> erase_impl(KeySet, Map)
