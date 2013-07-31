@@ -144,16 +144,16 @@ update_impl(KeySet, Value, Map) ->
                                 end,
                                 [],
                                 KeySet, Map),
-    Map#?MAP{inner_maps = InnerMaps}.
+    Map#?MAP{inner_maps = lists:reverse(InnerMaps)}.
 
 -spec erase_impl(keyset(), map()) -> map().
-erase_impl(KeySet, Map) ->    
+erase_impl(KeySet, Map) ->
     InnerMaps = fold_inner_maps(fun (Key, InnerMap, Acc) ->
                                         [dict:erase(Key, InnerMap) | Acc]
                                 end,
                                 [],
                                 KeySet, Map),
-    Map#?MAP{inner_maps = InnerMaps}.
+    Map#?MAP{inner_maps = lists:reverse(InnerMaps)}.
 
 -spec first_inner_map(map()) -> dict().
 first_inner_map(#?MAP{inner_maps = [First | _]}) ->
