@@ -17,7 +17,7 @@ __Authors:__ Takeru Ohta ([`phjgt308@gmail.com`](mailto:phjgt308@gmail.com)).
 ## Description ##
 
 
-本モジュールの使用例に関しては[README](./REAMDE.md) も参照のこと.
+本モジュールの使用例に関しては[README](./README.md) も参照のこと.
 <a name="types"></a>
 
 ## Data Types ##
