@@ -1,15 +1,30 @@
 
 
 # Module multi_key_map #
+* [Description](#description)
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
 
+一つの値に対して複数のキーが割り当て可能なマップの実装.
+
 
 <a name="types"></a>
 
 ## Data Types ##
+
+
+
+
+### <a name="type-fold_fun">fold_fun()</a> ###
+
+
+
+<pre><code>
+fold_fun() = fun((<a href="#type-keyset">keyset()</a>, <a href="#type-value">value()</a>, Acc::term()) -&gt; AccNext::term())
+</code></pre>
+
 
 
 
@@ -35,6 +50,50 @@ keyset() = tuple()
 </code></pre>
 
 
+
+ キーセットを表現するレコード
+
+
+
+### <a name="type-keyset_field">keyset_field()</a> ###
+
+
+
+<pre><code>
+keyset_field() = atom()
+</code></pre>
+
+
+
+ キーセット内のキー(フィールド)の名前
+
+
+
+### <a name="type-keyset_field_index">keyset_field_index()</a> ###
+
+
+
+<pre><code>
+keyset_field_index() = non_neg_integer()
+</code></pre>
+
+
+
+ 検索時等に使用するキーのインデックス. インデックスは `#RecordName.Field` 取得可能.
+
+
+
+### <a name="type-keyset_name">keyset_name()</a> ###
+
+
+
+<pre><code>
+keyset_name() = atom()
+</code></pre>
+
+
+
+ キーセットの名前. キーセットを表現するレコードの名前に相当
 
 
 
@@ -64,7 +123,7 @@ value() = term()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#erase-3">erase/3</a></td><td></td></tr><tr><td valign="top"><a href="#find-3">find/3</a></td><td></td></tr><tr><td valign="top"><a href="#fold-3">fold/3</a></td><td></td></tr><tr><td valign="top"><a href="#foreach-2">foreach/2</a></td><td></td></tr><tr><td valign="top"><a href="#insert-3">insert/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_multi_key_map-1">is_multi_key_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#size-1">size/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr><tr><td valign="top"><a href="#update-4">update/4</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#erase-3">erase/3</a></td><td></td></tr><tr><td valign="top"><a href="#find-3">find/3</a></td><td></td></tr><tr><td valign="top"><a href="#fold-3">fold/3</a></td><td></td></tr><tr><td valign="top"><a href="#foreach-2">foreach/2</a></td><td></td></tr><tr><td valign="top"><a href="#insert-3">insert/3</a></td><td>要素を挿入する.</td></tr><tr><td valign="top"><a href="#is_multi_key_map-1">is_multi_key_map/1</a></td><td>引数の値が<code>multi_key_map</code>のインスタンスかどうかを判定する.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>マップインスタンスを生成する.</td></tr><tr><td valign="top"><a href="#size-1">size/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr><tr><td valign="top"><a href="#update-4">update/4</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -132,6 +191,7 @@ insert(KeySet::<a href="#type-keyset">keyset()</a>, Value::<a href="#type-value"
 
 <ul class="definitions"><li><code>Reason = {key_exists, atom(), Key::<a href="#type-key">key()</a>}</code></li></ul>
 
+要素を挿入する.
 
 <a name="is_multi_key_map-1"></a>
 
@@ -145,19 +205,23 @@ is_multi_key_map(Value::term()) -&gt; boolean()
 <br></br>
 
 
+引数の値が`multi_key_map`のインスタンスかどうかを判定する.
+<a name="new-2"></a>
 
-<a name="new-1"></a>
-
-### new/1 ###
+### new/2 ###
 
 
 <pre><code>
-new(KeySetRecordFields) -&gt; <a href="#type-map">map()</a>
+new(KeySetName, KeySetFields) -&gt; <a href="#type-map">map()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>KeySetRecordFields = [atom()]</code></li></ul>
+<ul class="definitions"><li><code>KeySetName = <a href="#type-keyset_name">keyset_name()</a></code></li><li><code>KeySetFields = [<a href="#type-keyset_field_index">keyset_field_index()</a>]</code></li></ul>
 
 
+マップインスタンスを生成する.
+
+
+`KeySetFields`は`record_info(fields, KeySetNameName)`を使って取得すること.
 <a name="size-1"></a>
 
 ### size/1 ###

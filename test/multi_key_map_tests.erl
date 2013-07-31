@@ -14,7 +14,7 @@ new_test_() ->
     [
      {"マップインスタンスが生成できる",
       fun () ->
-              Map = multi_key_map:new(record_info(fields, keys)),
+              Map = multi_key_map:new(keys, record_info(fields, keys)),
               ?assert(multi_key_map:is_multi_key_map(Map))
       end}
     ].
@@ -23,7 +23,7 @@ is_multi_key_map_test_() ->
     [
      {"マップインスタンスの判定",
       fun () ->
-              Map    = multi_key_map:new(record_info(fields, keys)),
+              Map    = multi_key_map:new(keys, record_info(fields, keys)),
               NotMap = {a, b, c},
 
               ?assert(multi_key_map:is_multi_key_map(Map)),
@@ -38,7 +38,7 @@ insert_test_() ->
               Keys  = #keys{key1 = 10, key2 = 20, key3 = 30},
               Value = value,
               
-              Map0    = multi_key_map:new(record_info(fields, keys)),
+              Map0    = multi_key_map:new(keys, record_info(fields, keys)),
               ?assertEqual(0, multi_key_map:size(Map0)),
 
               Result0 = multi_key_map:insert(Keys, Value, Map0),
@@ -56,7 +56,7 @@ insert_test_() ->
               Keys1  = #keys{key1 = abc, key2 = 20, key3 = 'ABC'}, % key2 が重複
               Value1 = value1,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys0, Value0, Map0),
 
               ?assertEqual({error, {key_exists, key2, 20}}, multi_key_map:insert(Keys1, Value1, Map1))
@@ -71,7 +71,7 @@ update_test_() ->
               InitialValue = value,
               UpdatedValue = updated_value,
 
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys, InitialValue, Map0),
 
               Result1 = multi_key_map:update(#keys.key3, 30, UpdatedValue, Map1),
@@ -86,7 +86,7 @@ update_test_() ->
               InitialValue = value,
               UpdatedValue = updated_value,
 
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys, InitialValue, Map0),
 
               Result1 = multi_key_map:update(#keys.key3, 3000000, UpdatedValue, Map1),
@@ -103,7 +103,7 @@ find_test_() ->
               Keys2  = #keys{key1 = aa, key2 = bb, key3 = cc},
               Value2 = dd,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys1, Value1, Map0),
               {ok, Map2} = multi_key_map:insert(Keys2, Value2, Map1),
 
@@ -118,7 +118,7 @@ find_test_() ->
               Keys2  = #keys{key1 = aa, key2 = bb, key3 = cc},
               Value2 = dd,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys1, Value1, Map0),
               {ok, Map2} = multi_key_map:insert(Keys2, Value2, Map1),
 
@@ -135,7 +135,7 @@ erase_test_() ->
               Keys2  = #keys{key1 = aa, key2 = bb, key3 = cc},
               Value2 = dd,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys1, Value1, Map0),
               {ok, Map2} = multi_key_map:insert(Keys2, Value2, Map1),
               ?assertEqual(2, multi_key_map:size(Map2)),
@@ -156,7 +156,7 @@ erase_test_() ->
               Keys2  = #keys{key1 = aa, key2 = bb, key3 = cc},
               Value2 = dd,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys1, Value1, Map0),
               {ok, Map2} = multi_key_map:insert(Keys2, Value2, Map1),
 
@@ -173,7 +173,7 @@ foreach_test_() ->
               Keys2  = #keys{key1 = aa, key2 = bb, key3 = cc},
               Value2 = dd,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys1, Value1, Map0),
               {ok, Map2} = multi_key_map:insert(Keys2, Value2, Map1),
 
@@ -199,7 +199,7 @@ fold_test_() ->
               Keys2  = #keys{key1 = aa, key2 = bb, key3 = cc},
               Value2 = 70,
               
-              Map0       = multi_key_map:new(record_info(fields, keys)),
+              Map0       = multi_key_map:new(keys, record_info(fields, keys)),
               {ok, Map1} = multi_key_map:insert(Keys1, Value1, Map0),
               {ok, Map2} = multi_key_map:insert(Keys2, Value2, Map1),
 

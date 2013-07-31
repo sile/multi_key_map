@@ -1,7 +1,11 @@
+%% @doc 一つの値に対して複数のキーが割り当て可能なマップの実装
 -module(multi_key_map).
 
+%%--------------------------------------------------------------------------------
+%% Exported API
+%%--------------------------------------------------------------------------------
 -export([
-         new/1,
+         new/2,
          is_multi_key_map/1,
          insert/3,
          update/4,
@@ -13,37 +17,68 @@
          size/1
         ]).
 
+%%--------------------------------------------------------------------------------
+%% Exported Types
+%%--------------------------------------------------------------------------------
 -export_type([
               map/0,
               keyset/0,
+              keyset_name/0,
+              keyset_field/0,
+              keyset_field_index/0,
               key/0,
-              value/0
+              value/0,
+              fold_fun/0
              ]).
 
+%%--------------------------------------------------------------------------------
+%% Macros and Records
+%%--------------------------------------------------------------------------------
 -define(MAP, ?MODULE).
 
 -record(?MAP,
         {
-          fields     :: [atom()],
-          inner_maps :: [dict()]
+          record_name :: keyset_name(),
+          fields      :: [keyset_field()], % result of `record_info(fields, RecordName)'
+          inner_maps  :: [dict()]
         }).
 
--type map() :: #?MAP{}.
+%%--------------------------------------------------------------------------------
+%% Types
+%%--------------------------------------------------------------------------------
+-type map()                :: #?MAP{}.
+-type keyset()             :: tuple().           % キーセットを表現するレコード
+-type keyset_name()        :: atom().            % キーセットの名前. キーセットを表現するレコードの名前に相当
+-type keyset_field()       :: atom().            % キーセット内のキー(フィールド)の名前
+-type keyset_field_index() :: non_neg_integer(). % 検索時等に使用するキーのインデックス. インデックスは `#RecordName.Field' 取得可能.
 
--type keyset() :: tuple().
--type key()    :: term().
--type value()  :: term().
+-type key()   :: term().
+-type value() :: term().
 
--spec new(KeySetRecordFields) -> map() when
-      KeySetRecordFields :: [atom()].
-new(KeySetRecordFields) ->
-    #?MAP{fields = KeySetRecordFields,
-          inner_maps = [dict:new() || _ <- KeySetRecordFields]}.
+-type fold_fun() :: fun ((keyset(), value(), Acc::term()) -> AccNext::term()).
 
+%%--------------------------------------------------------------------------------
+%% Functions
+%%--------------------------------------------------------------------------------
+
+%% @doc マップインスタンスを生成する.
+%%
+%% `KeySetFields'は`record_info(fields, KeySetNameName)'を使って取得すること.
+-spec new(KeySetName, KeySetFields) -> map() when
+      KeySetName   :: keyset_name(),
+      KeySetFields :: [keyset_field_index()].
+new(KeySetName, KeySetFields) ->
+    #?MAP{record_name = KeySetName,
+          fields      = KeySetFields,
+          inner_maps  = [dict:new() || _ <- KeySetFields]}.
+
+%% @doc 引数の値が`multi_key_map'のインスタンスかどうかを判定する.
 -spec is_multi_key_map(Value::term()) -> boolean().
 is_multi_key_map(#?MAP{}) -> true;
 is_multi_key_map(_)       -> false.
 
+%% @doc 要素を挿入する.
+%%
 -spec insert(keyset(), value(), map()) -> {ok, map()} | {error, Reason} when
       Reason :: {key_exists, atom(), Key::key()}.
 insert(KeySet, Value, Map) ->
@@ -124,8 +159,10 @@ to_list(Map) ->
 size(Map) ->
     dict:size(first_inner_map(Map)).
 
--spec fold_inner_maps(Fun, term(), keyset(), map()) -> Result::term() when
-      Fun :: fun ((key(), dict(), Acc::term()) -> NextAcc::term()).
+%%--------------------------------------------------------------------------------
+%% Internal Functions
+%%--------------------------------------------------------------------------------
+-spec fold_inner_maps(fold_fun(), term(), keyset(), map()) -> Result::term().
 fold_inner_maps(Fun, Initial, KeySet, Map) ->
     {_, AccResult} = 
         lists:foldl(fun (InnerMap, {I, Acc}) ->
