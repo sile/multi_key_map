@@ -1,3 +1,5 @@
+%% @author Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2013 Takeru Ohta
 %% @doc 一つの値に対して複数のキーが割り当て可能なマップの実装
 -module(multi_key_map).
 
@@ -28,7 +30,8 @@
               keyset_field_index/0,
               key/0,
               value/0,
-              fold_fun/0
+              fold_fun/0,
+              foreach_fun/0
              ]).
 
 %%--------------------------------------------------------------------------------
@@ -55,7 +58,8 @@
 -type key()   :: term().
 -type value() :: term().
 
--type fold_fun() :: fun ((keyset(), value(), Acc::term()) -> AccNext::term()).
+-type fold_fun()    :: fun ((keyset(), value(), Acc::term()) -> AccNext::term()).
+-type foreach_fun() :: fun ((keyset(), value()) -> any()).
 
 %%--------------------------------------------------------------------------------
 %% Functions
@@ -64,6 +68,12 @@
 %% @doc マップインスタンスを生成する.
 %%
 %% `KeySetFields'は`record_info(fields, KeySetNameName)'を使って取得すること.
+%% <br />
+%% 使用例:
+%% ```
+%% > rd(keyset, {key1, key2, key3}).
+%% > multi_key_map:new(keyset, record_info(fields, keyset)).%
+%% '''
 -spec new(KeySetName, KeySetFields) -> map() when
       KeySetName   :: keyset_name(),
       KeySetFields :: [keyset_field_index()].
@@ -79,8 +89,21 @@ is_multi_key_map(_)       -> false.
 
 %% @doc 要素を挿入する.
 %%
+%% キーセット内のキーのいずれかが、既存のマップに存在する場合は、要素の上書きは行われずに、挿入処理に失敗する.<br />
+%% その場合は`{error, {key_exists, 衝突したキーのフィールド名, 衝突したキー}}'が結果として返される. <br />
+%% <br />
+%% 既に存在する要素の更新を行いたい場合は代わりに{@link update/4}を使用すること. <br />
+%% <br />
+%% 使用例:
+%% ```
+%% > rd(keyset, {key1, key2, key3}).
+%% > Map0 = multi_key_map:new(keyset, record_info(fields, keyset)).
+%% > {ok, Map1} = multi_key_map:insert(#keyset{key1 = a, key2 = b, key3 = c}, value1, Map0).
+%% > multi_key_map:to_list(Map1).
+%% [{#keyset{key1 = a,key2 = b,key3 = c},value1}]
+%% '''
 -spec insert(keyset(), value(), map()) -> {ok, map()} | {error, Reason} when
-      Reason :: {key_exists, atom(), Key::key()}.
+      Reason :: {key_exists, keyset_field(), key()}.
 insert(KeySet, Value, Map) ->
     Entry = {KeySet, Value},
     Result = 
@@ -103,9 +126,23 @@ insert(KeySet, Value, Map) ->
         {ok, InnerMaps} -> {ok, Map#?MAP{inner_maps = lists:reverse(InnerMaps)}}
     end.
 
--spec update(non_neg_integer(), key(), value(), map()) -> {ok, map()} | error.
-update(KeyIndex, Key, Value, Map) ->
-    InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
+%% @doc 要素の値を更新する.
+%%
+%% キーセット内の`FieldIndex'で指定されたフィールドの値が`Key'となる要素の値を更新する. <br />
+%% キーに対応する要素が存在しない場合は`error'が返される. <br />
+%% <br />
+%% 使用例:
+%% ```
+%% > rd(keyset, {key1, key2, key3}).
+%% > Map0 = multi_key_map:new(keyset, record_info(fields, keyset)).
+%% > {ok, Map1} = multi_key_map:insert(#keyset{key1 = a, key2 = b, key3 = c}, value1, Map0).
+%% > {ok, Map2} = multi_key_map:update(#keyset.key2, b, value2, Map1).
+%% > multi_key_map:to_list(Map2).
+%% [{#keyset{key1 = a,key2 = b,key3 = c},value2}]
+%% '''
+-spec update(keyset_field_index(), key(), value(), map()) -> {ok, map()} | error.
+update(FieldIndex, Key, Value, Map) when is_integer(FieldIndex) ->
+    InnerMap = lists:nth(FieldIndex-1, Map#?MAP.inner_maps),
     case dict:find(Key, InnerMap) of
         error       -> error;
         {ok, Entry} ->
@@ -113,14 +150,22 @@ update(KeyIndex, Key, Value, Map) ->
             {ok, update_impl(KeySet, Value, Map)}
     end.
 
--spec find(non_neg_integer(), key(), map()) -> {ok, keyset(), value()} | error.
-find(KeyIndex, Key, Map) ->
-    InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
+%% @doc 要素を検索する.
+%%
+%% キーセット内の`FieldIndex'で指定されたフィールドの値が`Key'となる要素を検索する. <br />
+%% 対応する要素が存在しない場合は`error'が返される.
+-spec find(keyset_field_index(), key(), map()) -> {ok, keyset(), value()} | error.
+find(FieldIndex, Key, Map) when is_integer(FieldIndex) ->
+    InnerMap = lists:nth(FieldIndex-1, Map#?MAP.inner_maps),
     case dict:find(Key, InnerMap) of
         error                 -> error;
         {ok, {KeySet, Value}} -> {ok, KeySet, Value}
     end.
 
+%% @doc 要素を削除する.
+%%
+%% キーセット内の`FieldIndex'で指定されたフィールドの値が`Key'となる要素の値を削除する. <br />
+%% 対応する要素が存在しない場合は、単に引数で渡されたマップがそのまま返される.
 -spec erase(non_neg_integer(), key(), map()) -> map().
 erase(KeyIndex, Key, Map) ->
     InnerMap = lists:nth(KeyIndex-1, Map#?MAP.inner_maps),
@@ -129,11 +174,10 @@ erase(KeyIndex, Key, Map) ->
         {ok, {KeySet, _}} -> erase_impl(KeySet, Map)
     end.
 
--spec fold(Fun, value(), map()) -> Result when
-      Fun     :: fun ((keyset(), value(), Acc) -> NextAcc),
-      Acc     :: term(),
-      NextAcc :: term(),
-      Result  :: term().
+%% @doc マップの要素の畳み込みを行う.
+%%
+%% 要素の畳み込み順は未定義.
+-spec fold(fold_fun(), term(), map()) -> Result::term().
 fold(Fun, Initial, Map) ->
     dict:fold(fun (_, {KeySet, Value}, Acc) ->
                       Fun(KeySet, Value, Acc)
@@ -141,20 +185,24 @@ fold(Fun, Initial, Map) ->
               Initial,
               first_inner_map(Map)).
 
--spec foreach(Fun, map()) -> ok when
-      Fun :: fun ((keyset(), value()) -> any()).
+%% @doc マップの要素を走査し、各要素に引数の関数を適用する.
+%%
+%% 要素の走査順は未定義.
+-spec foreach(foreach_fun(), map()) -> ok.
 foreach(Fun, Map) ->
     fold(fun (KeySet, Value, _) -> Fun(KeySet, Value) end,
          ok,
          Map),
     ok.
 
+%% @doc マップをリストに変換する.
 -spec to_list(map()) -> [{keyset(), value()}].
 to_list(Map) ->
     lists:reverse(dict:fold(fun (_, Entry, Acc) -> [Entry | Acc] end,
                             [],
                             first_inner_map(Map))).
 
+%% @doc マップに格納されている要素の数を取得する.
 -spec size(map()) -> non_neg_integer().
 size(Map) ->
     dict:size(first_inner_map(Map)).
@@ -193,5 +241,7 @@ erase_impl(KeySet, Map) ->
     Map#?MAP{inner_maps = lists:reverse(InnerMaps)}.
 
 -spec first_inner_map(map()) -> dict().
+first_inner_map(#?MAP{inner_maps = []}) ->
+    dict:new();
 first_inner_map(#?MAP{inner_maps = [First | _]}) ->
     First.

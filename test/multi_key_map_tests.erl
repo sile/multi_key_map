@@ -10,12 +10,20 @@
           key3 :: any()
         }).
 
+-record(empty_keys, {}).
+
 new_test_() ->
     [
      {"マップインスタンスが生成できる",
       fun () ->
               Map = multi_key_map:new(keys, record_info(fields, keys)),
               ?assert(multi_key_map:is_multi_key_map(Map))
+      end},
+     {"キーセットが空のマップインスタンスが生成できる",
+      fun () ->
+              Map = multi_key_map:new(empty_keys, record_info(fields, empty_keys)),
+              ?assert(multi_key_map:is_multi_key_map(Map)),
+              ?assertEqual(0, multi_key_map:size(Map))
       end}
     ].
 
