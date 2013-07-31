@@ -1,6 +1,9 @@
 %% @author Takeru Ohta <phjgt308@gmail.com>
 %% @copyright 2013 Takeru Ohta
-%% @doc 一つの値に対して複数のキーが割り当て可能なマップの実装
+%% 
+%% @doc 一つの値に対して複数のキーが割り当て可能なマップの実装.
+%%
+%% 本モジュールの使用例に関しては[README](./README.md) も参照のこと.
 -module(multi_key_map).
 
 %%--------------------------------------------------------------------------------
@@ -72,7 +75,7 @@
 %% 使用例:
 %% ```
 %% > rd(keyset, {key1, key2, key3}).
-%% > multi_key_map:new(keyset, record_info(fields, keyset)).%
+%% > multi_key_map:new(keyset, record_info(fields, keyset)).
 %% '''
 -spec new(KeySetName, KeySetFields) -> map() when
       KeySetName   :: keyset_name(),

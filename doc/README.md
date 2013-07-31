@@ -20,22 +20,22 @@ __Authors:__ Takeru Ohta ([`phjgt308@gmail.com`](mailto:phjgt308@gmail.com)).
 
 
 ```
-## 準備
+% 準備
 > rd(keyset, {key1, key2, key3}).
 > Map0 = multi_key_map:new(keyset, record_info(fields, keyset)).
 
-## 要素追加
+% 要素追加
 > {ok, Map1} = multi_key_map:insert(#keyset{key1 = 1, key2 = 2, key3 = 3}, value1, Map0).
 > {ok, Map2} = multi_key_map:insert(#keyset{key1 = a, key2 = b, key3 = c}, value2, Map1).
 
-## 要素検索: keyset内の任意のキーで検索が可能
+% 要素検索: keyset内の任意のキーで検索が可能
 > multi_key_map:find(#keyset.key1, 1, Map2).
 {ok,#keyset{key1 = 1,key2 = 2,key3 = 3},value1}
 
 > multi_key_map:find(#keyset.key2, b, Map2).
 {ok,#keyset{key1 = a,key2 = b,key3 = c},value2}
 
-## 要素更新: insert/3 は既に存在する要素の更新は行えない (キーセット内の一つでも、既存の要素と重複する場合は挿入に失敗する)
+% 要素更新: insert/3 は既に存在する要素の更新は行えない (キーセット内の一つでも、既存の要素と重複する場合は挿入に失敗する)
 > {error, {key_exists, key2, b}} = multi_key_map:insert(#keyset{key1 = new_a, key2 = b, key3 = new_c}, value3, Map2).
 
 > {ok, Map3} = multi_key_map:update(#keyset.key2, b, value3, Map2).

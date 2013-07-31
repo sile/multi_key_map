@@ -10,8 +10,14 @@
 一つの値に対して複数のキーが割り当て可能なマップの実装.
 Copyright (c) 2013 Takeru Ohta
 
-__Authors:__ Takeru Ohta ([`phjgt308@gmail.com`](mailto:phjgt308@gmail.com)).
 
+__Authors:__ Takeru Ohta ([`phjgt308@gmail.com`](mailto:phjgt308@gmail.com)).
+<a name="description"></a>
+
+## Description ##
+
+
+本モジュールの使用例に関しては[README](./REAMDE.md) も参照のこと.
 <a name="types"></a>
 
 ## Data Types ##
@@ -294,7 +300,7 @@ new(KeySetName, KeySetFields) -&gt; <a href="#type-map">map()</a>
 
 ```
   > rd(keyset, {key1, key2, key3}).
-  > multi_key_map:new(keyset, record_info(fields, keyset)).%
+  > multi_key_map:new(keyset, record_info(fields, keyset)).
 ```
 
 <a name="size-1"></a>
